@@ -1,0 +1,16 @@
+<div id="strength-definitions">
+  <div class="definition-controls">
+    <label for="strength-fraction">Nominal removal <output id="strength-fraction-value">50%</output><input id="strength-fraction" type="range" min="0" max="100" step="5" value="50"></label>
+    <label for="strength-channel">Event to edit<select id="strength-channel"><option value="0">Neuron A</option><option value="1">Neuron B</option><option value="2" selected>Neuron C</option><option value="3">Neuron D</option><option value="4">Neuron E</option><option value="5">Neuron F</option><option value="6">Neuron G</option><option value="7">Neuron H</option></select></label>
+    <label for="strength-activation">Signed activation \(a_{tj}\)<output id="strength-activation-value">−0.80</output><input id="strength-activation" type="range" min="-5" max="5" step="0.01" value="-0.8"></label>
+    <label for="strength-weight">Output-vector norm \(\lVert\mathbf{w}_j\rVert_2\)<output id="strength-weight-value">4.00</output><input id="strength-weight" type="range" min="0.1" max="6" step="0.05" value="4"></label>
+  </div>
+  <div id="strength-bars" role="img" aria-label="Magnitudes and output-weight norms for eight synthetic activation events"></div>
+  <p class="selection-key">× selected for zeroing &nbsp; · &nbsp; ○ retained <span>All scores use absolute values.</span></p>
+  <div class="definition-table-scroll" tabindex="0" aria-label="Four definitions compared across neurons; scroll horizontally on narrow screens">
+    <table class="definition-table"><caption class="visually-hidden">Selection scores for N, L, G, and W on the same eight neurons</caption><thead><tr><th scope="col">Selection rule</th><th scope="col">A</th><th scope="col">B</th><th scope="col">C</th><th scope="col">D</th><th scope="col">E</th><th scope="col">F</th><th scope="col">G</th><th scope="col">H</th><th scope="col">Selected</th></tr></thead><tbody id="strength-mask-rows"></tbody></table>
+  </div>
+  <p id="strength-detail" class="selected-detail" aria-live="polite"></p>
+  <details class="calibration-detail"><summary>Calibration histories</summary><p>Multiply the 12 evenly spaced values from 0.1 to 1.9 by each neuron’s scale to obtain its calibration magnitudes. The pooled reference contains all 96 values.</p><div class="definition-table-scroll"><table class="definition-table"><thead><tr><th>Neuron</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th></tr></thead><tbody><tr><th>Reference scale</th><td>0.10</td><td>0.25</td><td>0.50</td><td>1.00</td><td>2.00</td><td>3.00</td><td>0.15</td><td>0.80</td></tr></tbody></table></div></details>
+  <noscript><p>At the default 50% setting, N selects E, F, G, H; L selects A, B, G, H; G selects A, B, G; W selects B, D, F, G. N/G apply fixed historical thresholds, while L/W select exactly four neurons. Enable JavaScript to change the example.</p></noscript>
+</div>
