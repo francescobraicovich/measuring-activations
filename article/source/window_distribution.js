@@ -10,6 +10,8 @@
   const sample = document.getElementById('window-distribution-sample');
   const definition = document.getElementById('window-definition');
 
+  const markerButton = document.getElementById('window-markers');
+
   function setOptions(select, choices, preferred) {
     select.replaceChildren(...choices.map(([value, label]) => new Option(label, value)));
     if (choices.some(([value]) => value === preferred)) select.value = preferred;
@@ -48,7 +50,7 @@
     }];
     const height = Math.max(...counts) * 1.07;
     markers.forEach((value, index) => traces.push({
-      type: 'scatter', mode: 'lines', name: `${labels[index]} · ${format(value)}`,
+      type: 'scatter', mode: 'lines', visible: markerButton.getAttribute('aria-pressed') === 'true', name: `${labels[index]} · ${format(value)}`,
       x: [value, value], y: [0, height], line: {color, dash: dashes[index], width: 2},
       hoverinfo: 'skip',
     }));
@@ -81,6 +83,10 @@
   layer.addEventListener('change', () => {
     updateRemoval(removal.value);
     updateDefinitions(definition.value);
+    render();
+  });
+  markerButton.addEventListener('click', () => {
+    markerButton.setAttribute('aria-pressed', markerButton.getAttribute('aria-pressed') === 'false');
     render();
   });
   metric.addEventListener('change', render);

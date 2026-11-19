@@ -42,9 +42,10 @@ const fs = require('fs'), vm = require('vm'), assert = require('assert');
 const html = fs.readFileSync(process.argv[1], 'utf8');
 const script = html.match(/<\/main><script>([\s\S]*?)<\/script>/)[1];
 const elements = {};
-for (const id of ['model','layer','metric','fraction','ranking','scale','chart','depth-chart','crosshead','crossrows','pairedrows','rows']) {
+for (const id of ['model','layer','metric','fraction','ranking','scale','chart','depth-chart','depth-title','crosshead','crossrows','pairedrows','rows']) {
   elements[id] = {id, _value: '', _html: '', options: [],
     get value() {return this._value}, set value(value) {this._value=String(value)},
+    get selectedOptions() {return [{textContent: this.value}]},
     get innerHTML() {return this._html}, set innerHTML(value) {this._html=value; this.options=[]; this._value=''},
     appendChild(child) {this.options.push(String(child.value)); if (this.options.length === 1) this.value=child.value}};
 }
@@ -98,6 +99,7 @@ elements.model.value = 'gpt2'; elements.model.onchange();
 assert.strictEqual(elements.layer.value, '-1');
 assert.strictEqual(plots.chart.traces.find(trace => trace.name && trace.name.startsWith('N ·')).x.length, 16);
 assert.strictEqual(Number(elements.fraction.value), .9);
+assert(elements['depth-title'].textContent.includes('Token flip rate across layers at 90% nominal removal'));
 assert.strictEqual(elements.metric.value, 'flip_rate');
 assert.strictEqual(elements.ranking.value, 'both');
 assert.strictEqual(elements.scale.value, 'log');
@@ -108,6 +110,7 @@ elements.layer.value = '16'; elements.layer.onchange();
 elements.model.value = 'gpt2'; elements.model.onchange();
 assert.strictEqual(elements.layer.value, '6');
 assert.strictEqual(Number(elements.fraction.value), .9);
+assert(elements['depth-title'].textContent.includes('Token flip rate across layers at 90% nominal removal'));
 '''
     subprocess.run(['node', '-e', program, str(ROOT / 'article/index.html')], check=True)
 

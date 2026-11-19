@@ -63,9 +63,11 @@ SOFTWARE.
 <p class="has-sidenote">All four rules use quantiles to decide which activations to remove. L and W remove a fixed number at each token, while N and G use thresholds fitted on training text, so the number of test activations below those thresholds can vary. <mark>The differences are small in the individual-layer runs</mark><span class="sidenote"><button class="sidenote-trigger" type="button" aria-label="Show note 1" aria-expanded="false" aria-controls="sidenote-1">1</button><span class="sidenote-content" id="sidenote-1" role="note">Ideally, I’d rerun each rule with its cutoff adjusted to remove exactly 75% of the test activations. For N and G, the 75th-percentile cutoff comes from training text, so it can remove a different share on the test text. Unfortunately, this is just a weekend project and I didn’t have time to rerun everything. Interpolating is good enough.</span></span>: at the 75% setting, the average share removed ranges from 73.9% to 75.2% across the four rules and sampled layers.</p>
 
 <figure class="interactive-figure" aria-labelledby="definitions-title">
+<div class="plot-frame">
 <h3 id="definitions-title">Which activations each definition removes at one token</h3>
 <p class="figure-introduction">Change an activation or its output-vector norm in this synthetic eight-neuron layer. The table shows which activations each rule selects; calibration histories stay fixed.</p>
 [[definitions_html]]
+</div>
 <figcaption>Figure 1. Synthetic example. Each neuron has 12 calibration magnitudes, evenly spaced from 0.1 to 1.9 times its reference scale. N and G use linearly interpolated quantiles and strict \(<\) thresholds; L and W use exact quotas with ties broken by neuron index.</figcaption>
 </figure>
 </section>
@@ -82,7 +84,9 @@ SOFTWARE.
 
 <p>While these metrics might look promising, they don’t paint the full picture. As Neel Nanda suggests, weak activations might be more relevant for rare events and facts. To explore how the effect varies across passages, I examined the distribution of flip rates when removing activations. With definition G at 75% nominal removal in SmolLM2 layer 16 (the same setup as before), the median window had a [[smol_window_median]]% next-token flip rate, the 90th percentile window had a [[smol_window_p90]]% flip rate, and the highest observed window had a [[smol_window_max]]% flip rate.</p>
 
-<figure class="scientific-figure">
+<figure class="scientific-figure" aria-labelledby="distribution-title">
+<div class="plot-frame">
+<h3 id="distribution-title">Distribution of activation-removal outcomes across windows</h3>
 <div id="window-distribution-controls" hidden>
 <div class="comparison-controls">
 <label>Model <select id="window-model"><option value="gpt2">GPT-2</option><option value="smollm2" selected>SmolLM2</option></select></label>
@@ -90,11 +94,13 @@ SOFTWARE.
 <label>Definition <select id="window-definition"></select></label>
 <label>Metric <select id="window-metric"></select></label>
 <label>Nominal removal <select id="window-removal"></select></label>
+<button type="button" id="window-markers" aria-controls="window-distribution-chart" aria-pressed="true">Summary lines</button>
 </div>
 </div>
 <div id="window-distribution-chart" aria-label="Distribution of selected outcomes across held-out windows"></div>
 [[window_flip_rate_figure]]
 <script type="application/json" id="window-distribution-data">[[window_distribution_html]]</script>
+</div>
 <figcaption>Figure 3. Distribution of outcomes across held-out windows. The initial view shows next-token flip rates for definition G across 512 windows at 75% nominal removal in SmolLM2 layer 16. The lines mark the median, 90th percentile, and highest observed value. <span id="window-distribution-sample" aria-live="polite"></span></figcaption>
 </figure>
 
@@ -107,8 +113,15 @@ SOFTWARE.
 
 <p>At 75% nominal removal under definition G, the top-token flip rate is about 4–6% across the five sampled SmolLM2 layers and 11–21% across the five sampled GPT-2 layers. SmolLM2’s KL is also lower in every sampled layer. That supports Nick’s hypothesis, and the curves below show what happens when we compare weak-activation removal with random removal. Across the five sampled SmolLM2 layers and all four definitions, flip rate and KL rose monotonically as the removal fraction increased. Both stayed below random removal at every sampled fraction between 0% and 100%, with comparisons made at the same nominal removal rate.</p>
 
-<figure class="scientific-figure">
+<figure class="scientific-figure" aria-labelledby="middle-layer-title">
+<div class="plot-frame">
+<h3 id="middle-layer-title">Middle-layer token flip rates under weak and random removal</h3>
+<div id="middle-layer-controls" class="comparison-controls" hidden>
+<button type="button" aria-controls="middle-layer-panels" aria-pressed="true">95% confidence bands</button>
+</div>
+<div id="middle-layer-panels"></div>
 [[comparison_figure]]
+</div>
 <figcaption>Figure 4. GPT-2’s response is messier: in its middle layer, pooled-magnitude removal becomes more disruptive than random removal before the curves meet again. SmolLM2’s response is smoother in its middle layer. The horizontal axis uses mean observed removal; N and G use fitted thresholds and can remove different fractions from random. Shading shows 95% article-cluster bootstrap intervals across 512 windows from 61 articles. Random removal uses one seed, which the intervals do not vary.</figcaption>
 </figure>
 
@@ -122,17 +135,21 @@ SOFTWARE.
 <h2>So, what is the best definition?</h2>
 <p>I was thinking to myself that a good definition of ‘activation strength’ should be one that, when used to remove the weakest activations, harms the model the least. In Figure 5, you can see which definition meets this criterion.</p>
 <figure class="definition-comparison" aria-labelledby="winner-title">
+<div class="plot-frame">
 <h3 id="winner-title">Least disruptive definition by layer and nominal removal</h3>
 [[comparison_metric_html]]
 <div class="comparison-key" aria-label="Winner colors"><span><b class="winner-N">N</b> Neuron percentile</span><span><b class="winner-L">L</b> Within-token</span><span><b class="winner-G">G</b> Pooled percentile</span><span><b class="winner-W">W</b> Weight adjusted</span></div>
 [[definition_winners_html]]
+</div>
 <figcaption>Figure 5. The letter and color identify the definition with the lowest mean for the selected metric. Columns show nominal removal. Individual layers use 512 windows; the sequential all-layer run uses 64. Hover for the measured outcome and observed removal.</figcaption>
 </figure>
 
 <p>The first thing is that the two models do not agree. On GPT-2, the neuron percentile (N) comes out ahead most often. On SmolLM2, it’s the pooled percentile (G). To better analyse the comparison, I compare their relative effects on the network’s outputs.</p>
 <figure class="definition-comparison" aria-labelledby="pairwise-title">
+<div class="plot-frame">
 <h3 id="pairwise-title">Relative disruption at matched observed removal</h3>
 [[definition_comparison_html]]
+</div>
 <figcaption>Figure 6. Ratios compare the two definitions at the same mean observed removal, using linear interpolation between measurements. The all-layer row uses the mean removal across layers. Hover for the two estimated outcomes. The colors show the direction and size of the difference and saturate at ⅛× and 8×.</figcaption>
 </figure>
 

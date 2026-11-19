@@ -740,7 +740,7 @@ L 768.301395 286.907645
     <text style="font-weight: 500; font-size: 13px; font-family: 'DejaVu Sans'; text-anchor: start" x="419.459479" y="37.595636" transform="rotate(-0 419.459479 37.595636)">SmolLM2 · layer 16</text>
    </g>
   </g>
-  <g id="text_22">
+  <g id="heading">
    <text style="font-size: 15px; font-family: 'DejaVu Sans'; text-anchor: start" x="19.75176" y="18.597656" transform="rotate(-0 19.75176 18.597656)">Middle-layer token flip rates under weak and random removal</text>
   </g>
   <g id="legend_1">
@@ -750,7 +750,7 @@ L 215.44976 347.778197
 L 225.44976 347.778197 
 " style="fill: none; stroke-dasharray: 6.66,2.88; stroke-dashoffset: 0; stroke: #000000; stroke-width: 1.8"/>
    </g>
-   <g id="text_23">
+   <g id="text_22">
     <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start" x="233.44976" y="351.278197" transform="rotate(-0 233.44976 351.278197)">Random</text>
    </g>
    <g id="line2d_42">
@@ -759,7 +759,7 @@ L 304.846635 347.778197
 L 314.846635 347.778197 
 " style="fill: none; stroke: #253367; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
-   <g id="text_24">
+   <g id="text_23">
     <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start" x="322.846635" y="351.278197" transform="rotate(-0 322.846635 351.278197)">G · pooled percentile</text>
    </g>
    <g id="line2d_43">
@@ -768,7 +768,7 @@ L 457.179448 347.778197
 L 467.179448 347.778197 
 " style="fill: none; stroke: #d72000; stroke-width: 1.8; stroke-linecap: square"/>
    </g>
-   <g id="text_25">
+   <g id="text_24">
     <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: start" x="475.179448" y="351.278197" transform="rotate(-0 475.179448 351.278197)">N · neuron percentile</text>
    </g>
   </g>

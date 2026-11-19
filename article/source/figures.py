@@ -122,7 +122,7 @@ def build_figures():
     axes[0].set_ylabel('Top-token predictions changed (%)', labelpad=10)
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, frameon=False, loc='upper center', bbox_to_anchor=(.5, -.02), ncol=3, fontsize=10)
-    fig.suptitle('Middle-layer token flip rates under weak and random removal', x=.02, ha='left', fontsize=15)
+    fig.suptitle('Middle-layer token flip rates under weak and random removal', x=.02, ha='left', fontsize=15, gid='heading')
     save(fig, 'ablation_comparison')
     plot_window_flip_rates(window_flip_rates())
 

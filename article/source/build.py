@@ -219,7 +219,7 @@ def main():
     introduction = '<h1>Activation ablation study</h1><p>Explore held-out measurements by model, layer, method and nominal removal fraction.</p>'
     if introduction not in source or '</main><script>' not in source:
         raise ValueError('Explorer template changed')
-    explorer_split = '<div class="controls" id="depth-controls">'
+    explorer_split = '<!-- Additional results -->'
     if source.count(introduction) != 1 or source.count(explorer_split) != 1:
         raise ValueError('Explorer sections changed')
     before, after = source.split(introduction, 1)
@@ -227,16 +227,17 @@ def main():
     values['results_explorer'] = ('<section id="data-explorer" class="explorer"><h2>Experiments &amp; Results</h2>'
                                   + '<p>I zero selected activations just before the MLP output projection. '
                                   + 'The single-layer runs use 512 windows from 61 WikiText-2 articles.</p>'
-                                  + '<h3 class="plot-title">Model output changes as more activations are removed</h3>' + main_plot + '</section>')
+                                  + main_plot + '</section>')
     article = typeset_math(render_sidenotes(substitute((HERE / 'article.html').read_text(), values)))
-    source = before + article + '<details class="explorer additional-results"><summary>Additional Results</summary>' + explorer_split + remaining
+    source = before + article + '<details class="explorer additional-results"><summary>Additional Results</summary>' + remaining
     source = source.replace('</main><script>', '</details></main><script>', 1)
     source = source.replace('<title>Activation ablation study</title>', '<title>What is a weak activation? Four definitions compared</title>', 1)
     source = source.replace('</style></head>', math_styles() + values['report_styles'] + '</style></head>', 1)
     source = source.replace('</head>', '<script>' + (MATH_ASSETS / 'katex.min.js').read_text() + '</script></head>', 1)
-    source = source.replace('</body>', '<script>' + (HERE / 'strength_definitions.js').read_text() + '</script><script>' + (HERE / 'footnotes.js').read_text() + '</script><script>' + (HERE / 'definition_comparison.js').read_text() + '</script></body>', 1)
-    source = source.replace('</body>', '<script>' + (HERE / 'window_distribution.js').read_text() + '</script></body>', 1)
-    source = source.replace('</body>', '<script>' + (HERE / 'murmuration.js').read_text() + '</script></body>', 1)
+    scripts = ('strength_definitions.js', 'footnotes.js', 'definition_comparison.js',
+               'window_distribution.js', 'middle_layer_comparison.js', 'murmuration.js')
+    source = source.replace('</body>', ''.join('<script>' + (HERE / name).read_text() + '</script>'
+                                                for name in scripts) + '</body>', 1)
     (HERE.parent / 'index.html').write_text(source)
     numeric_values = {key: value for key, value in values.items() if not key.endswith(('_html', '_styles', '_figure', '_explorer'))}
     (RESULTS / 'article_values.json').write_text(json.dumps(numeric_values, indent=2) + '\n')
