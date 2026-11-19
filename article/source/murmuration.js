@@ -10,7 +10,7 @@
   const between = (a, b) => a + (b - a) * random();
   const step = 1 / 30;
   const margin = 8;
-  const waveSpeed = 75;
+  const waveSpeed = 65;
   const fadeDuration = 2.4;
   const survivorFlight = 4.8;
   let birds = [], cells = [], columns, rows, width, height, reach;
@@ -110,7 +110,13 @@
     if (smallest.some(group => group.maturity < .74)) return;
     wave = {x: smallest[0].x, y: smallest[0].y, start: time};
     for (const group of smallest) {
-      for (const bird of group.members) bird.fading = true;
+      for (const bird of group.members) {
+        const dx = offset(bird.x - group.x, width), dy = offset(bird.y - group.y, height);
+        const speed = 2.7 * reach / Math.max(reach * .35, Math.hypot(dx, dy));
+        bird.spreadX = dx * speed;
+        bird.spreadY = dy * speed;
+        bird.fading = true;
+      }
     }
   }
 
@@ -171,7 +177,7 @@
       b.alarm = 0;
       if (time > disperseAt) {
         const distance = Math.hypot(offset(b.x - wave.x, width), offset(b.y - wave.y, height));
-        const elapsed = time - disperseAt - distance / waveSpeed;
+        const elapsed = (time - disperseAt - distance / waveSpeed) / 1.3;
         if (elapsed > 0) b.alarm = 1.35 * (1 - Math.exp(-.8 * elapsed)) * Math.exp(-.23 * elapsed);
       }
       // Persistent angular noise gives a turn a duration of about half a second.
@@ -192,14 +198,16 @@
       if (time > disperseAt + travel + 13) wave = null;
       if (!wave) selectFlocks();
     }
+    // A short outward impulse opens the selected flocks while their wings keep beating.
+    const spreadStep = wave ? step * Math.exp(-2.8 * (time - wave.start)) : 0;
     for (const b of birds) {
       if (b.fading && time >= fadeEnd) continue;
       const angle = b.turn * step, cos = Math.cos(angle), sin = Math.sin(angle);
       const vx = b.vx * cos - b.vy * sin;
       b.vy = b.vx * sin + b.vy * cos; b.vx = vx;
       const stride = (23 + 13 * b.depth + b.speedCorrection + 30 * b.alarm) * step;
-      b.x = (b.x + b.vx * stride + width) % width;
-      b.y = (b.y + b.vy * stride + height) % height;
+      b.x = (b.x + b.vx * stride + (b.fading ? b.spreadX * spreadStep : 0) + width) % width;
+      b.y = (b.y + b.vy * stride + (b.fading ? b.spreadY * spreadStep : 0) + height) % height;
     }
   }
 
