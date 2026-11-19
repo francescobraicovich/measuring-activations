@@ -106,7 +106,7 @@
     }
     for (const [bird, {group}] of fringe) group.members.push(bird);
     groups.sort((a, b) => a.members.length - b.members.length);
-    const smallest = groups.slice(0, Math.round(groups.length * 0.6));
+    const smallest = groups.slice(0, Math.round(groups.length * 0.75));
     if (smallest.some(group => group.maturity < .74)) return;
     wave = {x: smallest[0].x, y: smallest[0].y, start: time};
     for (const group of smallest) {

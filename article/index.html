@@ -3822,7 +3822,7 @@ SOFTWARE.
 <p class="eyebrow"><time>October 2026</time></p>
 <p class="subtitle">Comparing four definitions in GPT-2 and SmolLM2.</p>
 <div class="murmuration" hidden>
-  <canvas id="murmuration" role="img" aria-label="Black pixel starlings turn with their neighbours. Flocks gather into dense clusters. The smallest 60% of flocks burst outward together and fade as they fly. The surviving flocks fly on together before gradually scattering. Inspired by Giorgio Parisi’s In un volo di storni."></canvas>
+  <canvas id="murmuration" role="img" aria-label="Black pixel starlings turn with their neighbours. Flocks gather into dense clusters. The smallest 75% of flocks burst outward together and fade as they fly. The surviving flocks fly on together before gradually scattering. Inspired by Giorgio Parisi’s In un volo di storni."></canvas>
   <button type="button" class="murmuration-control" aria-label="Pause animation" title="Pause animation"></button>
 </div>
 </header>
@@ -5823,7 +5823,7 @@ additionalResults?.addEventListener('toggle', () => {
     }
     for (const [bird, {group}] of fringe) group.members.push(bird);
     groups.sort((a, b) => a.members.length - b.members.length);
-    const smallest = groups.slice(0, Math.round(groups.length * 0.6));
+    const smallest = groups.slice(0, Math.round(groups.length * 0.75));
     if (smallest.some(group => group.maturity < .74)) return;
     wave = {x: smallest[0].x, y: smallest[0].y, start: time};
     for (const group of smallest) {
