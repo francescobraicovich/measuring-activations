@@ -146,3 +146,12 @@ mark{color:inherit;background:rgb(0 0 0 / 5.5%);padding:0 1px;-webkit-box-decora
   .additional-results table{font-size:11px}
   .additional-results :is(th,td){padding-inline:2px}
 }
+
+.murmuration{position:relative;margin:0 0 24px;background:white}
+.murmuration canvas{display:block;width:100%;aspect-ratio:2.85;image-rendering:pixelated}
+.murmuration-control{position:absolute;right:0;bottom:0;width:32px;height:32px;display:grid;place-items:center;border:0;background:white;color:black;cursor:pointer}
+.murmuration-control::before{content:"";width:5px;height:9px;border-inline:2px solid currentColor;box-sizing:content-box}
+.murmuration-control[data-paused]::before{width:0;height:0;border:5px solid transparent;border-left:8px solid currentColor;border-right:0}
+.murmuration-control:focus-visible{outline:1px solid currentColor;outline-offset:-3px}
+@media(max-width:600px){.murmuration canvas{aspect-ratio:2.1}}
+@media print{.murmuration-control{display:none}}

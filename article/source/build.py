@@ -236,6 +236,7 @@ def main():
     source = source.replace('</head>', '<script>' + (MATH_ASSETS / 'katex.min.js').read_text() + '</script></head>', 1)
     source = source.replace('</body>', '<script>' + (HERE / 'strength_definitions.js').read_text() + '</script><script>' + (HERE / 'footnotes.js').read_text() + '</script><script>' + (HERE / 'definition_comparison.js').read_text() + '</script></body>', 1)
     source = source.replace('</body>', '<script>' + (HERE / 'window_distribution.js').read_text() + '</script></body>', 1)
+    source = source.replace('</body>', '<script>' + (HERE / 'murmuration.js').read_text() + '</script></body>', 1)
     (HERE.parent / 'index.html').write_text(source)
     numeric_values = {key: value for key, value in values.items() if not key.endswith(('_html', '_styles', '_figure', '_explorer'))}
     (RESULTS / 'article_values.json').write_text(json.dumps(numeric_values, indent=2) + '\n')

@@ -30,6 +30,10 @@ SOFTWARE.
 <h1>What is a weak activation?</h1>
 <p class="eyebrow"><time>October 2026</time></p>
 <p class="subtitle">Comparing four definitions in GPT-2 and SmolLM2.</p>
+<div class="murmuration" hidden>
+  <canvas id="murmuration" role="img" aria-label="Black pixel starlings fly in turbulent streams, gather into flocks, and scatter as the smallest flocks burst. Inspired by Giorgio Parisi’s In un volo di storni."></canvas>
+  <button type="button" class="murmuration-control" aria-label="Pause animation" title="Pause animation"></button>
+</div>
 </header>
 
 <p>The interpretability community has seen considerable discussion about weak activations following Nick Cammarata’s <a href="https://already-clean.goodfire.com/">“Neural Networks Are Already Clean”</a>. Nick argues that modern training pipelines have improved neuron monosemanticity alongside model performance, and that interpreting neurons’ activations has become tractable even at large scale. One of the points he makes to support large-scale interpretability efforts is that weak activations contribute marginally to a network's output; he corroborates this by showing that vision models tolerate substantial removal of weak activations. It is unclear whether this also holds for LLMs, and most importantly: what is a weak activation?</p>
