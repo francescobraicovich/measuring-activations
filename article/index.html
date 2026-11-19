@@ -3814,7 +3814,7 @@ SOFTWARE.
 <p class="eyebrow"><time>October 2026</time></p>
 <p class="subtitle">Comparing four definitions in GPT-2 and SmolLM2.</p>
 <div class="murmuration" hidden>
-  <canvas id="murmuration" role="img" aria-label="Black pixel starlings turn with their neighbours. Flocks gather into dense clusters. A small flock bursts and the disturbance scatters its neighbours. Inspired by Giorgio Parisi’s In un volo di storni."></canvas>
+  <canvas id="murmuration" role="img" aria-label="Black pixel starlings turn with their neighbours. Flocks gather into dense clusters. Smaller flocks burst in succession as the disturbance spreads and the larger flocks scatter. Inspired by Giorgio Parisi’s In un volo di storni."></canvas>
   <button type="button" class="murmuration-control" aria-label="Pause animation" title="Pause animation"></button>
 </div>
 </header>
@@ -5677,7 +5677,7 @@ additionalResults?.addEventListener('toggle', () => {
 
   // Find connected patches of closely spaced birds travelling together.
   // Count actual members so a few stray birds cannot trigger a burst.
-  function releaseSmallestFlock() {
+  function releaseFlock() {
     const groups = [];
     let clustered = 0;
     for (const first of birds) {
@@ -5704,12 +5704,27 @@ additionalResults?.addEventListener('toggle', () => {
       if (cx < margin + 5 || cx > width - margin - 5 || cy < margin + 5 || cy > height - margin - 5) continue;
       groups.push({members, x: cx, y: cy, maturity: maturity / n});
     }
-    if (groups.length < 2 || clustered < .48 * birds.length) return;
+    if (groups.length < 2) return;
     groups.sort((a, b) => a.members.length - b.members.length);
-    const small = groups[0], large = groups[groups.length - 1];
-    if (small.members.length > large.members.length * .7 || small.maturity < .74) return;
-
-    wave = {x: small.x, y: small.y, start: time};
+    const large = groups[groups.length - 1];
+    let small = groups[0];
+    if (!wave) {
+      if (clustered < .48 * birds.length || small.members.length > large.members.length * .7 || small.maturity < .74) return;
+      wave = {x: small.x, y: small.y, start: time, bursts: 0, lastBurst: time};
+    } else {
+      // A ripple can open other coherent flocks as it reaches them. Keep its
+      // original source so the larger flocks disperse at the same pace.
+      small = groups.find(group => {
+        if (group.members.length > .85 * large.members.length || group.maturity < .55) return false;
+        if (group.members.some(b => b.burst >= wave.start)) return false;
+        const distance = Math.hypot(offset(group.x - wave.x, width), offset(group.y - wave.y, height));
+        const arrival = time - wave.start - distance / waveSpeed;
+        return arrival >= 0 && arrival < 1.5;
+      });
+      if (!small) return;
+    }
+    wave.bursts++;
+    wave.lastBurst = time;
     for (const b of small.members) {
       const dx = offset(b.x - small.x, width), dy = offset(b.y - small.y, height);
       const direction = Math.atan2(dy, dx) + between(-.20,.20);
@@ -5781,7 +5796,8 @@ additionalResults?.addEventListener('toggle', () => {
     // Sample connectivity at 4 Hz; the birds themselves move at 30 Hz.
     if (++sample % 8 === 0) {
       if (wave && time - wave.start > 13 + Math.hypot(width, height) / (2 * waveSpeed)) wave = null;
-      if (!wave) releaseSmallestFlock();
+      if (!wave || (wave.bursts < 4 && time - wave.lastBurst >= .55 &&
+          time - wave.start < Math.hypot(width, height) / (2 * waveSpeed) + 1.5)) releaseFlock();
     }
     for (const b of birds) {
       const angle = b.turn * step, cos = Math.cos(angle), sin = Math.sin(angle);
