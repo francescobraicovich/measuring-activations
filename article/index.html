@@ -5626,6 +5626,7 @@ additionalResults?.addEventListener('toggle', () => {
   const between = (a, b) => a + (b - a) * random();
   const step = 1 / 30;
   const margin = 8;
+  const waveSpeed = 75;
   let birds = [], cells = [], columns, rows, width, height, reach;
   let time = 0, remainder = 0, sample = 0, wave = null;
   let paused = motion.matches, visible = false, frame = 0, previous = 0;
@@ -5662,7 +5663,7 @@ additionalResults?.addEventListener('toggle', () => {
         const y = .3 + .2 * stream + .18 * Math.sin(tau * x + stream) + between(-.18,.18);
         const angle = between(0,tau);
         return {x: x * width, y: ((y + 1) % 1) * height, vx: Math.cos(angle), vy: Math.sin(angle),
-          turn: 0, noise: 0, density: 0, speedCorrection: 0, maturity: 0, core: false, alarm: 0, kickX: 0, kickY: 0, burst: -Infinity, depth: random(), beat: between(3.3,5.7), phase: between(0,tau)};
+          turn: 0, noise: 0, density: 0, speedCorrection: 0, alignmentResponse: 0, maturity: 0, core: false, alarm: 0, kickX: 0, kickY: 0, burst: -Infinity, depth: random(), beat: between(3.3,5.7), phase: between(0,tau)};
       });
       if (paused) for (let i = 0; i < 30; i++) advance();
     }
@@ -5761,22 +5762,25 @@ additionalResults?.addEventListener('toggle', () => {
       b.alarm = 0;
       if (wave) {
         const distance = Math.hypot(offset(b.x - wave.x, width), offset(b.y - wave.y, height));
-        const elapsed = time - wave.start - .26 - distance / 155;
-        if (elapsed > 0) b.alarm = (1 - Math.exp(-12 * elapsed)) * Math.exp(-.55 * elapsed);
+        const elapsed = time - wave.start - .55 - distance / waveSpeed;
+        if (elapsed > 0) b.alarm = 1.35 * (1 - Math.exp(-.8 * elapsed)) * Math.exp(-.23 * elapsed);
       }
       // Persistent angular noise gives a turn a duration of about half a second.
       b.noise = .94 * b.noise + .59 * between(-1,1);
       const nx = tau * b.x / width, ny = tau * b.y / height;
       const gust = Math.sin(nx + ny - time * .42) * Math.cos(ny - time * .26);
       const noise = .75 + 1.7 * (1 - polar) + .55 * gust + 12 * b.alarm;
-      const coupling = norm * (1 - b.alarm) ** 3;
+      // Neighbour influence builds over several seconds of undisturbed flight.
+      // A passing disturbance erodes it locally before a flock can reform.
+      b.alignmentResponse += step * ((1 - b.alignmentResponse) / 7 - b.alarm * b.alignmentResponse);
+      const coupling = norm * (.15 + .85 * b.alignmentResponse) * (1 - b.alarm) ** 3;
       const steerX = coupling * (5.5 * alignX + 1.08 * pullX) + .95 * Math.sin(ny + time * .37);
       const steerY = coupling * (5.5 * alignY + 1.08 * pullY) + .95 * Math.cos(nx - time * .28);
       b.turn = Math.max(-8, Math.min(8, b.vx * steerY - b.vy * steerX + b.noise * noise));
     }
     // Sample connectivity at 4 Hz; the birds themselves move at 30 Hz.
     if (++sample % 8 === 0) {
-      if (wave && time - wave.start > 6 + Math.hypot(width, height) / 310) wave = null;
+      if (wave && time - wave.start > 13 + Math.hypot(width, height) / (2 * waveSpeed)) wave = null;
       if (!wave) releaseSmallestFlock();
     }
     for (const b of birds) {
