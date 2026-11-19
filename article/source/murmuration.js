@@ -11,6 +11,7 @@
   const step = 1 / 30;
   const margin = 8;
   const waveSpeed = 75;
+  const fadeDuration = 2.4;
   const survivorFlight = 4.8;
   let birds = [], cells = [], columns, rows, width, height, reach;
   let time = 0, remainder = 0, sample = 0, wave = null;
@@ -48,7 +49,7 @@
         const y = .3 + .2 * stream + .18 * Math.sin(tau * x + stream) + between(-.18,.18);
         const angle = between(0,tau);
         return {x: x * width, y: ((y + 1) % 1) * height, vx: Math.cos(angle), vy: Math.sin(angle),
-          turn: 0, noise: 0, density: 0, speedCorrection: 0, alignmentResponse: 0, maturity: 0, core: false, alarm: 0, kickX: 0, kickY: 0, burst: -Infinity, emerged: -Infinity, depth: random(), beat: between(3.3,5.7), phase: between(0,tau)};
+          turn: 0, noise: 0, density: 0, speedCorrection: 0, alignmentResponse: 0, maturity: 0, core: false, alarm: 0, fading: false, emerged: -Infinity, depth: random(), beat: between(3.3,5.7), phase: between(0,tau)};
       });
       if (paused) for (let i = 0; i < 30; i++) advance();
     }
@@ -61,8 +62,7 @@
   }
 
   // Find connected patches of closely spaced birds travelling together.
-  // Count actual members so a few stray birds cannot trigger a burst.
-  function releaseFlock() {
+  function selectFlocks() {
     const groups = [];
     let clustered = 0;
     for (const first of birds) {
@@ -86,47 +86,31 @@
       if (n < Math.max(18, birds.length * .032) || Math.hypot(vx, vy) / n < .8) continue;
       clustered += n;
       const cx = (first.x + x / n + width) % width, cy = (first.y + y / n + height) % height;
-      if (cx < margin + 5 || cx > width - margin - 5 || cy < margin + 5 || cy > height - margin - 5) continue;
       groups.push({members, x: cx, y: cy, maturity: maturity / n});
     }
-    if (groups.length < 2) return;
-    groups.sort((a, b) => a.members.length - b.members.length);
-    const large = groups[groups.length - 1];
-    let small = groups[0];
-    if (!wave) {
-      if (clustered < .48 * birds.length || small.members.length > large.members.length * .7 || small.maturity < .74) return;
-      wave = {x: small.x, y: small.y, start: time, bursts: 0, lastBurst: time};
-    } else {
-      // A ripple can open other coherent flocks as it reaches them. Keep its
-      // original source so the larger flocks disperse at the same pace.
-      small = groups.find(group => {
-        if (group.members.length > .85 * large.members.length || group.maturity < .55) return false;
-        if (group.members.some(b => b.burst >= wave.start)) return false;
-        const distance = Math.hypot(offset(group.x - wave.x, width), offset(group.y - wave.y, height));
-        const arrival = time - wave.start - distance / waveSpeed;
-        return arrival >= 0 && arrival < 1.5;
-      });
-      if (!small) return;
-    }
-    wave.bursts++;
-    wave.lastBurst = time;
-    // Include nearby fringe birds travelling with the core. Otherwise the
-    // sparse outline of a flock can survive the disappearance of its centre.
-    const flock = new Set(small.members);
-    for (const b of small.members) {
-      for (const cell of b.cell.nearby) for (const other of cell.members) {
-        if (other.core || b.vx * other.vx + b.vy * other.vy < .65) continue;
-        const dx = offset(other.x - b.x, width), dy = offset(other.y - b.y, height);
-        if (dx * dx + dy * dy < (.36 * reach) ** 2) flock.add(other);
+    if (groups.length < 3 || clustered < .48 * birds.length) return;
+
+    // Assign each aligned fringe bird to its nearest core before comparing sizes.
+    const fringe = new Map();
+    for (const group of groups) {
+      for (const b of group.members) {
+        for (const cell of b.cell.nearby) for (const other of cell.members) {
+          if (other.core || b.vx * other.vx + b.vy * other.vy < .65) continue;
+          const dx = offset(other.x - b.x, width), dy = offset(other.y - b.y, height);
+          const distance = dx * dx + dy * dy;
+          if (distance < (.36 * reach) ** 2 && distance < (fringe.get(other)?.distance ?? Infinity)) {
+            fringe.set(other, {group, distance});
+          }
+        }
       }
     }
-    for (const b of flock) {
-      const dx = offset(b.x - small.x, width), dy = offset(b.y - small.y, height);
-      const direction = Math.atan2(dy, dx) + between(-.20,.20);
-      const impulse = between(115,145);
-      b.kickX = Math.cos(direction) * impulse; b.kickY = Math.sin(direction) * impulse;
-      b.burst = time;
-      b.core = false;
+    for (const [bird, {group}] of fringe) group.members.push(bird);
+    groups.sort((a, b) => a.members.length - b.members.length);
+    const smallest = groups.slice(0, Math.round(groups.length / 3));
+    if (smallest.some(group => group.maturity < .74)) return;
+    wave = {x: smallest[0].x, y: smallest[0].y, start: time};
+    for (const group of smallest) {
+      for (const bird of group.members) bird.fading = true;
     }
   }
 
@@ -136,27 +120,26 @@
   function advance() {
     time += step;
     const travel = Math.hypot(width, height) / (2 * waveSpeed);
-    // Finish the burst sequence before sending a slower disturbance through
-    // the surviving flocks. A late pop must never rewind an advancing wave.
-    const disperseAt = wave ? Math.max(wave.lastBurst + survivorFlight, wave.start + travel + 1.5) : Infinity;
+    const fadeEnd = wave ? wave.start + fadeDuration : Infinity;
+    const disperseAt = fadeEnd + survivorFlight;
     for (const cell of cells) cell.members.length = 0;
     for (const b of birds) {
-      if (b.burst !== -Infinity) {
+      if (b.fading && time >= fadeEnd) {
         // Replace lost birds singly and at unrelated positions once the
         // disturbance has crossed the sky and the survivors are scattering.
         if (time < disperseAt + travel + 1.5 + 4 * b.depth) continue;
         b.x = random() * width; b.y = random() * height;
         const angle = between(0,tau);
         b.vx = Math.cos(angle); b.vy = Math.sin(angle);
-        b.kickX = b.kickY = b.noise = b.alarm = b.maturity = b.alignmentResponse = b.density = 0;
-        b.burst = -Infinity; b.emerged = time;
+        b.noise = b.alarm = b.maturity = b.alignmentResponse = b.density = 0;
+        b.fading = false; b.emerged = time;
       }
       const index = Math.floor(b.y / height * rows) * columns + Math.floor(b.x / width * columns);
       b.cell = cells[index];
       b.cell.members.push(b);
     }
     for (const b of birds) {
-      if (b.burst !== -Infinity) continue;
+      if (b.fading && time >= fadeEnd) continue;
       let weight = 0, alignX = 0, alignY = 0, pullX = 0, pullY = 0;
       // Crowded cores spread sideways and along the flight direction so a
       // growing flock occupies more sky instead of collapsing to one pixel.
@@ -183,7 +166,7 @@
       const polar = Math.hypot(alignX, alignY) * norm;
       b.core = weight > 5 && polar > .67;
       b.maturity += step * ((b.core && b.alarm < .15 ? 1 : 0) - b.maturity) * (b.core ? .33 : 1.2);
-      // The disturbance travels out from the burst. Birds ahead of it keep
+      // The disturbance travels out from the first selected core. Birds ahead of it keep
       // their heading; those behind it turn independently and gain speed.
       b.alarm = 0;
       if (time > disperseAt) {
@@ -207,18 +190,10 @@
     // Sample connectivity at 4 Hz; the birds themselves move at 30 Hz.
     if (++sample % 8 === 0) {
       if (time > disperseAt + travel + 13) wave = null;
-      if (!wave || (wave.bursts < 4 && time - wave.lastBurst >= .55 &&
-          time - wave.start < travel + 1.5)) releaseFlock();
+      if (!wave) selectFlocks();
     }
     for (const b of birds) {
-      if (b.burst !== -Infinity) {
-        if (time - b.burst < .8) {
-          b.x = (b.x + (24 * b.vx + b.kickX) * step + width) % width;
-          b.y = (b.y + (24 * b.vy + b.kickY) * step + height) % height;
-          b.kickX *= .92; b.kickY *= .92;
-        }
-        continue;
-      }
+      if (b.fading && time >= fadeEnd) continue;
       const angle = b.turn * step, cos = Math.cos(angle), sin = Math.sin(angle);
       const vx = b.vx * cos - b.vy * sin;
       b.vy = b.vx * sin + b.vy * cos; b.vx = vx;
@@ -229,21 +204,16 @@
   }
 
   function draw() {
+    const progress = wave ? Math.min(1, (time - wave.start) / fadeDuration) : 0;
+    const opacity = 1 - progress * progress * (3 - 2 * progress);
+    context.globalAlpha = 1;
     context.fillStyle = '#fff';
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.fillStyle = '#000';
     for (const b of birds) {
       const x = Math.round(b.x) - margin, y = Math.round(b.y) - margin;
-      if (b.burst !== -Infinity) {
-        const age = time - b.burst;
-        if (age < .42 + .32 * b.depth) {
-          context.fillRect(x, y, 1, 1);
-          if (age < .3) {
-            context.fillRect(x - Math.sign(b.kickX), y - Math.sign(b.kickY), 1, 1);
-          }
-        }
-        continue;
-      }
+      if (b.fading && opacity === 0) continue;
+      context.globalAlpha = b.fading ? opacity : 1;
       const depth = b.depth * Math.min(1, time - b.emerged);
       context.fillRect(x, y, 1, 1);
       if (depth < .43) continue;
