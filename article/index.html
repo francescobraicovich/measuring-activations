@@ -3772,12 +3772,17 @@ mark{color:inherit;background:rgb(0 0 0 / 5.5%);padding:0 1px;-webkit-box-decora
 
 .murmuration{position:relative;margin:0 0 24px;background:white}
 .murmuration canvas{display:block;width:100%;aspect-ratio:2.85;image-rendering:pixelated}
-.murmuration-control{position:absolute;right:0;bottom:0;width:32px;height:32px;display:grid;place-items:center;border:0;background:white;color:black;cursor:pointer}
+.article .murmuration-caption{margin:8px 0 0;font:italic 14px/1.45 Georgia,serif}
+.murmuration-controls{display:flex;align-items:center;gap:8px;font:12px/1.3 system-ui,sans-serif}
+.murmuration-controls label{font:inherit}
+.murmuration-controls input{width:100px;min-width:32px;height:24px;margin:0;accent-color:#000}
+.murmuration-controls output{min-width:4ch;font-variant-numeric:tabular-nums}
+.murmuration-control{margin-left:auto;flex:none;width:32px;height:32px;display:grid;place-items:center;border:0;background:white;color:black;cursor:pointer}
 .murmuration-control::before{content:"";width:5px;height:9px;border-inline:2px solid currentColor;box-sizing:content-box}
 .murmuration-control[data-paused]::before{width:0;height:0;border:5px solid transparent;border-left:8px solid currentColor;border-right:0}
 .murmuration-control:focus-visible{outline:1px solid currentColor;outline-offset:-3px}
 @media(max-width:600px){.murmuration canvas{aspect-ratio:2.1}}
-@media print{.murmuration-control{display:none}}
+@media print{.murmuration-controls{display:none}}
 
 .comparison-controls button{cursor:pointer;border-radius:4px}
 .comparison-controls button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
@@ -3822,8 +3827,14 @@ SOFTWARE.
 <p class="eyebrow"><time>October 2026</time></p>
 <p class="subtitle">Comparing four definitions in GPT-2 and SmolLM2.</p>
 <div class="murmuration" hidden>
-  <canvas id="murmuration" role="img" aria-label="Black pixel starlings turn with their neighbours. Flocks gather into dense clusters. The smallest 75% of flocks burst outward together and fade as they fly. The surviving flocks fly on together before gradually scattering. Inspired by Giorgio Parisi’s In un volo di storni."></canvas>
-  <button type="button" class="murmuration-control" aria-label="Pause animation" title="Pause animation"></button>
+  <canvas id="murmuration" role="img" aria-label="Pixel starlings in flight, inspired by Giorgio Parisi’s In un volo di storni."></canvas>
+  <p class="murmuration-caption">The birds follow their neighbours into flocks, and the smallest flocks burst and fade together.</p>
+  <div class="murmuration-controls">
+    <label for="flock-percentage">Flocks to fade next round</label>
+    <input id="flock-percentage" type="range" min="0" max="100" value="75">
+    <output for="flock-percentage" aria-hidden="true">75%</output>
+    <button type="button" class="murmuration-control" aria-label="Pause animation" title="Pause animation"></button>
+  </div>
 </div>
 </header>
 
@@ -5721,6 +5732,8 @@ additionalResults?.addEventListener('toggle', () => {
   if (!context) return;
   const scene = canvas.parentElement;
   const control = scene.querySelector('button');
+  const percentage = scene.querySelector('input');
+  const readout = scene.querySelector('output');
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const tau = 2 * Math.PI;
   const random = Math.random;
@@ -5823,9 +5836,10 @@ additionalResults?.addEventListener('toggle', () => {
     }
     for (const [bird, {group}] of fringe) group.members.push(bird);
     groups.sort((a, b) => a.members.length - b.members.length);
-    const smallest = groups.slice(0, Math.round(groups.length * 0.75));
-    if (smallest.some(group => group.maturity < .74)) return;
-    wave = {x: smallest[0].x, y: smallest[0].y, start: time};
+    const count = Math.round(groups.length * percentage.valueAsNumber / 100);
+    const smallest = groups.slice(0, count);
+    if (groups[0].maturity < .74 || smallest.some(group => group.maturity < .74)) return;
+    wave = {x: groups[0].x, y: groups[0].y, start: time};
     for (const group of smallest) {
       for (const bird of group.members) {
         const dx = offset(bird.x - group.x, width), dy = offset(bird.y - group.y, height);
@@ -5974,6 +5988,13 @@ additionalResults?.addEventListener('toggle', () => {
     if (visible && !paused && !document.hidden) frame = requestAnimationFrame(tick);
   }
 
+  function displayPercentage() {
+    readout.value = percentage.value + '%';
+    percentage.setAttribute('aria-valuetext', readout.value);
+  }
+
+  percentage.addEventListener('input', displayPercentage);
+  displayPercentage();
   scene.hidden = false;
   resize();
   new ResizeObserver(resize).observe(canvas);

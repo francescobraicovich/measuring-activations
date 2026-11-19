@@ -31,8 +31,14 @@ SOFTWARE.
 <p class="eyebrow"><time>October 2026</time></p>
 <p class="subtitle">Comparing four definitions in GPT-2 and SmolLM2.</p>
 <div class="murmuration" hidden>
-  <canvas id="murmuration" role="img" aria-label="Black pixel starlings turn with their neighbours. Flocks gather into dense clusters. The smallest 75% of flocks burst outward together and fade as they fly. The surviving flocks fly on together before gradually scattering. Inspired by Giorgio Parisi’s In un volo di storni."></canvas>
-  <button type="button" class="murmuration-control" aria-label="Pause animation" title="Pause animation"></button>
+  <canvas id="murmuration" role="img" aria-label="Pixel starlings in flight, inspired by Giorgio Parisi’s In un volo di storni."></canvas>
+  <p class="murmuration-caption">The birds follow their neighbours into flocks, and the smallest flocks burst and fade together.</p>
+  <div class="murmuration-controls">
+    <label for="flock-percentage">Flocks to fade next round</label>
+    <input id="flock-percentage" type="range" min="0" max="100" value="75">
+    <output for="flock-percentage" aria-hidden="true">75%</output>
+    <button type="button" class="murmuration-control" aria-label="Pause animation" title="Pause animation"></button>
+  </div>
 </div>
 </header>
 

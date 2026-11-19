@@ -147,12 +147,17 @@ mark{color:inherit;background:rgb(0 0 0 / 5.5%);padding:0 1px;-webkit-box-decora
 
 .murmuration{position:relative;margin:0 0 24px;background:white}
 .murmuration canvas{display:block;width:100%;aspect-ratio:2.85;image-rendering:pixelated}
-.murmuration-control{position:absolute;right:0;bottom:0;width:32px;height:32px;display:grid;place-items:center;border:0;background:white;color:black;cursor:pointer}
+.article .murmuration-caption{margin:8px 0 0;font:italic 14px/1.45 Georgia,serif}
+.murmuration-controls{display:flex;align-items:center;gap:8px;font:12px/1.3 system-ui,sans-serif}
+.murmuration-controls label{font:inherit}
+.murmuration-controls input{width:100px;min-width:32px;height:24px;margin:0;accent-color:#000}
+.murmuration-controls output{min-width:4ch;font-variant-numeric:tabular-nums}
+.murmuration-control{margin-left:auto;flex:none;width:32px;height:32px;display:grid;place-items:center;border:0;background:white;color:black;cursor:pointer}
 .murmuration-control::before{content:"";width:5px;height:9px;border-inline:2px solid currentColor;box-sizing:content-box}
 .murmuration-control[data-paused]::before{width:0;height:0;border:5px solid transparent;border-left:8px solid currentColor;border-right:0}
 .murmuration-control:focus-visible{outline:1px solid currentColor;outline-offset:-3px}
 @media(max-width:600px){.murmuration canvas{aspect-ratio:2.1}}
-@media print{.murmuration-control{display:none}}
+@media print{.murmuration-controls{display:none}}
 
 .comparison-controls button{cursor:pointer;border-radius:4px}
 .comparison-controls button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}

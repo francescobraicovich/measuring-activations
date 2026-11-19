@@ -4,6 +4,8 @@
   if (!context) return;
   const scene = canvas.parentElement;
   const control = scene.querySelector('button');
+  const percentage = scene.querySelector('input');
+  const readout = scene.querySelector('output');
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const tau = 2 * Math.PI;
   const random = Math.random;
@@ -106,9 +108,10 @@
     }
     for (const [bird, {group}] of fringe) group.members.push(bird);
     groups.sort((a, b) => a.members.length - b.members.length);
-    const smallest = groups.slice(0, Math.round(groups.length * 0.75));
-    if (smallest.some(group => group.maturity < .74)) return;
-    wave = {x: smallest[0].x, y: smallest[0].y, start: time};
+    const count = Math.round(groups.length * percentage.valueAsNumber / 100);
+    const smallest = groups.slice(0, count);
+    if (groups[0].maturity < .74 || smallest.some(group => group.maturity < .74)) return;
+    wave = {x: groups[0].x, y: groups[0].y, start: time};
     for (const group of smallest) {
       for (const bird of group.members) {
         const dx = offset(bird.x - group.x, width), dy = offset(bird.y - group.y, height);
@@ -257,6 +260,13 @@
     if (visible && !paused && !document.hidden) frame = requestAnimationFrame(tick);
   }
 
+  function displayPercentage() {
+    readout.value = percentage.value + '%';
+    percentage.setAttribute('aria-valuetext', readout.value);
+  }
+
+  percentage.addEventListener('input', displayPercentage);
+  displayPercentage();
   scene.hidden = false;
   resize();
   new ResizeObserver(resize).observe(canvas);
