@@ -6,7 +6,7 @@ main{max-width:1150px;padding:76px 32px 64px;margin:auto}
 .article,.additional-results{max-width:700px;margin-inline:auto}
 .article p,.article li{font-size:17px;line-height:1.5;color:var(--ink);margin:.8125em 0}
 .article-header{margin-bottom:26px}
-.post-nav{display:flex;align-items:center;gap:1rem;margin-bottom:31px;font:400 12.75px/1.5 Georgia,serif}
+.post-nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:31px;font:400 12.75px/1.5 Georgia,serif}
 .post-nav a{display:inline-flex;align-items:center;gap:.35rem;font-family:'Courier New',monospace}
 .article .eyebrow{font:400 12.75px/1.5 Georgia,'Times New Roman',serif;margin:0 0 25px}
 .article h1{font-size:clamp(35px,5.4vw,56px);line-height:1.04;font-weight:400;letter-spacing:-.045em;margin:0 0 8px;max-width:700px}
