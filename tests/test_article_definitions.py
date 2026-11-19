@@ -7,12 +7,12 @@ import numpy as np
 import pytest
 import torch
 
-from analysis.large_study.write_report import inline_svg, measurement, substitute
+from article.source.build import inline_svg, measurement, substitute
 from src.calibrate import fit_thresholds
 from src.masks import build_mask
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / 'analysis/large_study/strength_definitions.js'
+SCRIPT = ROOT / 'article/source/strength_definitions.js'
 
 
 def javascript_results(cases):

@@ -63,9 +63,9 @@
   const normLabel = math(String.raw`\lVert\mathbf{w}\rVert_2`);
   const definitions = {
     N: ['Neuron percentile', math(String.raw`\lvert a\rvert\,/\,q_j(p)`)],
-    L: ['Layer percentile at token', math(String.raw`\lvert a\rvert\quad(\mathrm{rank})`)],
+    L: ['Layer percentile at token', math(String.raw`\lvert a\rvert`) + " (rank)"],
     G: ['Layer percentile, pooled', math(String.raw`\lvert a\rvert\,/\,q_{\mathrm{pool}}(p)`)],
-    W: ['Layer percentile, weight adjusted', math(String.raw`\lvert a\rvert\,\lVert\mathbf{w}\rVert_2\quad(\mathrm{rank})`)]
+    W: ['Layer percentile, weight adjusted', math(String.raw`\lvert a\rvert\,\lVert\mathbf{w}\rVert_2`) + " (rank)"]
   };
 
   function render() {

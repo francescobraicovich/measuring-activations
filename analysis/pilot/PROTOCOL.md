@@ -1,7 +1,7 @@
 # Which weak MLP activations matter?
 
 **Study protocol — weak-activation ablation only (Experiment A)**  
-**Status:** planned; no empirical results yet  
+This is the original pilot plan. The [article study protocol](../large_study/PROTOCOL.md) describes the published experiments.  
 **Hardware:** Apple Silicon Mac, target 16 GB unified memory; fully local after downloading models and dataset  
 **Training:** none. Both models are publicly available pretrained *base* checkpoints and remain frozen.
 

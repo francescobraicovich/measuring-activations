@@ -7,7 +7,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 STUDY = ROOT / 'results/study'
 DEST = STUDY / 'figures/report'
 DEST.mkdir(parents=True, exist_ok=True)

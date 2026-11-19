@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "windows": 64,
+  "articles": 61,
+  "layers": 30,
+  "fractions": [
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.75,
+    0.8,
+    0.85,
+    0.9,
+    0.95,
+    0.99,
+    0.995,
+    0.999
+  ],
+  "sources": [
+    {
+      "directory": "results/large_study/all_layers/smollm2",
+      "run_sha256": "4d6db93e2503d1391b5451f4773e0dfb577ef4db42609aeb2de6cb87d563d803",
+      "signature_sha256": "97970575d4041cf0a13f95cd3592c0dc3523cccc03cd771af9e104dc1a3fe125",
+      "metrics_sha256": "f7b45e2640a849d4e40b47b4f702c0dc93338acf9ce9b99e8f8e2e076219df7f"
+    },
+    {
+      "directory": "results/large_study/all_layers_additional/smollm2",
+      "run_sha256": "350a5fb66ca896d1704cf1832d0df1c48269e2cc8727cb463ad06b5911b85032",
+      "signature_sha256": "936a9112621ab2a288f8893badb9395f755e256ff0f1db646ca4f4d032e3f1e4",
+      "metrics_sha256": "27208c2e2cf7cbb8c30949475b19d6edb31c8a0e0e76f8c1029cb6f868699e26"
+    }
+  ],
+  "combiner_sha256": "c95b6830c3608aa0f8e196b11d201919b189cb1b721804d483b5e10661a2f72f"
+}

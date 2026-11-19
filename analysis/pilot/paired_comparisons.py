@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 metrics = pd.read_parquet(ROOT / 'results/study/metrics.parquet')
 rng = np.random.default_rng(1729)
 rows = []

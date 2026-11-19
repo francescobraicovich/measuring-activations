@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "windows": 64,
+  "articles": 61,
+  "layers": 12,
+  "fractions": [
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.75,
+    0.8,
+    0.85,
+    0.9,
+    0.95,
+    0.99,
+    0.995,
+    0.999
+  ],
+  "sources": [
+    {
+      "directory": "results/large_study/all_layers/gpt2",
+      "run_sha256": "e835e49ced4fccc5a903aee95fcd72a823a86286742af612d3800246a440bbae",
+      "signature_sha256": "94afcc220889cd36551a1ec705533bcf83d1e54f00a9d9f964cd6e88d8054f5c",
+      "metrics_sha256": "c8805ad3fc949432f7646ec480c11d43e4dd8967033cf736f08397330544308a"
+    },
+    {
+      "directory": "results/large_study/all_layers_additional/gpt2",
+      "run_sha256": "ee4fef5c0346660372a65bc9fd0e5f05c0b56a52527e0fd0e3f60f559143b20b",
+      "signature_sha256": "80de5ffddd92404fbe062f9d80c31783f5187405bcc30749116cbc1f682f8d5b",
+      "metrics_sha256": "16c573d8ce45cf2c84a77c8d8aed2728b8ec4cd1f501e1fbc4d3f9f87698c2b9"
+    }
+  ],
+  "combiner_sha256": "c95b6830c3608aa0f8e196b11d201919b189cb1b721804d483b5e10661a2f72f"
+}

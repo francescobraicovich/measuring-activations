@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from scipy.stats import spearmanr
 
-root = Path(__file__).resolve().parents[1]
+root = Path(__file__).resolve().parents[2]
 figure = make_subplots(rows=1, cols=2, subplot_titles=['GPT-2 · layer 6', 'SmolLM2 · layer 16'], horizontal_spacing=.13)
 for col, label in enumerate(['gpt2_6', 'smollm2_16'], 1):
     data = pd.read_csv(root / 'results/study/descriptive' / label / 'channels.csv')

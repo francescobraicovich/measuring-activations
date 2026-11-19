@@ -62,9 +62,27 @@ def article_values(summary, paired):
         for metric in ('kl', 'flip_rate', 'observed_fraction'):
             row = measurement(summary, model='smollm2', layer=16, method='G', fraction=fraction, metric=metric)
             values[f'smol_g_{label}_{metric}'] = f'{row["mean"]:.3g}' if metric == 'kl' else f'{100 * row["mean"]:.3g}'
-    for fraction, label in [(0.9, '90'), (0.99, '99')]:
-        row = measurement(summary, model='gpt2', layer=6, method='L', fraction=fraction, metric='kl')
-        values[f'gpt_l_{label}_kl'] = f'{row["mean"]:.3g}'
+    for metric in ('kl', 'flip_rate'):
+        partial = measurement(summary, model='gpt2', layer=6, method='G', fraction=.9, metric=metric)['mean']
+        full = measurement(summary, model='gpt2', layer=6, method='G', fraction=1., metric=metric)['mean']
+        random = measurement(summary, model='gpt2', layer=6, method='random', fraction=.9, metric=metric)['mean']
+        if partial <= max(full, random):
+            raise ValueError(f'The stated GPT-2 layer 6 comparison no longer holds for {metric}')
+        for label, mean in [('90', partial), ('100', full)]:
+            values[f'gpt_g_{label}_{metric}'] = f'{mean:.3g}' if metric == 'kl' else f'{100 * mean:.3g}'
+    for metric in ('kl', 'flip_rate'):
+        subset = summary[(summary.model == 'smollm2') & (summary.metric == metric) &
+                         summary.method.isin(['N', 'L', 'G', 'W', 'random'])]
+        baseline = subset[subset.method == 'random'][['layer', 'fraction', 'mean']]
+        for method in ('N', 'L', 'G', 'W'):
+            rows = subset[subset.method == method]
+            if len(rows) != 80 or any((group.sort_values('fraction')['mean'].diff().dropna() < -1e-10).any()
+                                      for _, group in rows.groupby('layer')):
+                raise ValueError(f'The stated SmolLM2 monotonicity no longer holds for {method} {metric}')
+            compared = rows.merge(baseline, on=['layer', 'fraction'], suffixes=('_method', '_random'))
+            interior = compared[(compared.fraction > 0) & (compared.fraction < 1)]
+            if len(interior) != 75 or (interior.mean_method >= interior.mean_random).any():
+                raise ValueError(f'The stated SmolLM2 random comparison no longer holds for {method} {metric}')
     for name, model, layer, method, reference in [
         ('smol_difference', 'smollm2', 16, 'L', 'random'),
         ('gpt_difference', 'gpt2', 6, 'L', 'random'),
@@ -76,13 +94,6 @@ def article_values(summary, paired):
     for metric in ('observed_fraction', 'removed_abs_fraction'):
         row = measurement(summary, model='smollm2', layer=16, method='L', fraction=.99, metric=metric)
         values[f'p99_{metric}'] = f'{100 * row["mean"]:.1f}'
-    geometry = pd.read_parquet(ROOT / 'results/followup/localization/geometry.parquet')
-    for method in ('L', 'W'):
-        group = geometry[(geometry.method == method) & (geometry.region == 'scored')]
-        if len(group) != 128 or group.cluster_id.nunique() != 4:
-            raise ValueError('Unexpected geometry sample')
-        for field in ('net_removed_norm', 'sum_individual_norms'):
-            values[f'geometry_{method}_{field}'] = f'{group[field].mean():.3g}'
     for model, layer, method, reference, direction in [
         ('smollm2', 16, 'L', 'random', -1), ('gpt2', 6, 'L', 'random', 1),
         ('gpt2', 0, 'W', 'L', 1),
@@ -93,6 +104,32 @@ def article_values(summary, paired):
     return values
 
 
+
+def window_values():
+    from figures import window_flip_rates
+
+    rates = window_flip_rates()
+    return {'smol_window_median': f'{100 * rates.quantile(.5):.2g}',
+            'smol_window_p90': f'{100 * rates.quantile(.9):.2g}',
+            'smol_window_max': f'{100 * rates.max():.2g}'}
+
+
+def sequential_values():
+    """Read all-layer measurements used in the article from completed runs."""
+    values = {}
+    for model, prefix, method in [('gpt2', 'all_gpt', 'N'), ('smollm2', 'all_smol', 'G')]:
+        directory = RESULTS / 'all_layers_combined' / model
+        run = json.loads((directory / 'run.json').read_text())
+        if run['status'] != 'passed' or run['windows'] != 64 or run['articles'] != 61:
+            raise ValueError(f'Unexpected all-layer run: {model}')
+        summary = pd.read_csv(directory / 'summary.csv')
+        for name, ranking in [(prefix, method), (prefix + '_local', 'L'), (prefix + '_random', 'random')]:
+            for metric in ('kl', 'flip_rate', 'observed_fraction'):
+                row = measurement(summary, model=model, layer=-1, method=ranking, fraction=.75, metric=metric)
+                values[f'{name}_{metric}'] = f'{row["mean"]:.3g}' if metric == 'kl' else f'{100 * row["mean"]:.3g}'
+    return values
+
+
 def substitute(template, values):
     def replace(match):
         name = match.group(1)
@@ -100,6 +137,22 @@ def substitute(template, values):
             raise ValueError(f'Unresolved article value: {name}')
         return str(values[name])
     return re.sub(r'\[\[([a-zA-Z0-9_]+)\]\]', replace, template)
+
+
+def render_sidenotes(source):
+    """Use the same linked footnotes and progressive enhancement as the blog."""
+    footnotes = []
+    for number in (1, 2, 3):
+        pattern = (rf'<span class="sidenote"><button class="sidenote-trigger"[^>]*>{number}</button>'
+                   rf'<span class="sidenote-content" id="sidenote-{number}" role="note">(.*?)</span></span>')
+        match = re.search(pattern, source, re.S)
+        if not match:
+            raise ValueError(f'Footnote {number} was not found')
+        footnotes.append(f'<li id="fn{number}" class="footnote-item"><p>{match.group(1)} <a href="#fnref{number}" class="footnote-backref">↩︎</a></p></li>')
+        reference = f'<sup class="footnote-ref"><a href="#fn{number}" id="fnref{number}">[{number}]</a></sup>'
+        source = source[:match.start()] + reference + source[match.end():]
+    notes = '<hr class="footnotes-sep"><section class="footnotes"><ol class="footnotes-list">' + ''.join(footnotes) + '</ol></section>'
+    return source.replace('<article class="article">', '<article class="article prose">', 1).replace('</article>', notes + '</article>', 1)
 
 
 def inline_svg(path, title, description):
@@ -136,48 +189,57 @@ def math_styles():
 
 
 def main():
-    from report_figures import build_figures
+    from figures import COLORS, build_figures, window_distributions
+    from definition_comparison import comparison_html
+    from explorer import build as build_explorer
+
+    build_explorer(RESULTS / 'data', RESULTS / 'interactive.html')
     build_figures()
     summary = pd.read_csv(RESULTS / 'data/summary.csv')
     paired = pd.read_csv(RESULTS / 'data/paired_comparisons.csv')
     values = article_values(summary, paired)
+    values.update(sequential_values())
+    values.update(window_values())
     values['definitions_html'] = (HERE / 'strength_definitions.html').read_text()
-    values['report_styles'] = (HERE / 'report.css').read_text()
+    values['report_styles'] = (HERE / 'article.css').read_text()
+    values['window_distribution_html'] = json.dumps(window_distributions(), separators=(',', ':'), allow_nan=False)
+    values['window_flip_rate_figure'] = inline_svg(
+        RESULTS / 'figures/window_flip_rates.svg',
+        'Distribution of next-token flip rates across windows',
+        'Histogram of 512 held-out windows for definition G at 75 percent nominal removal in SmolLM2 layer 16. '
+        'Vertical lines mark the median, 90th percentile, and maximum.')
     values['comparison_figure'] = inline_svg(
         RESULTS / 'figures/ablation_comparison.svg',
-        'Removing the same fraction can have very different effects',
-        'Logarithmic KL axes show L, W, and random removal at 75 percent in all five sampled layers of each model. '
-        'L is below random in every sampled SmolLM2 layer, but above random at GPT-2 layer 6. W has higher KL than L at GPT-2 layer 0. '
-        'Whiskers show 95 percent article bootstrap intervals; values are available in the explorer.')
-    values['geometry_figure'] = inline_svg(
-        RESULTS / 'figures/projection_geometry.svg',
-        'A smaller upper bound can accompany a larger net perturbation',
-        'GPT-2 layer 0, 75 percent removal, 128 windows from four articles. '
-        'The sum of individual removed contribution norms falls from 481 under L to 465 under W, '
-        'while the net removed vector norm rises from 12.1 to 16.6. '
-        'The two panels have different scales; units are internal projection coordinates.')
+        'Middle-layer token flip rates under weak and random removal',
+        'Top-token flip rates versus mean observed removal in GPT-2 layer 6 and SmolLM2 layer 16. '
+        'N, G, and random removal are shown with 95 percent article-bootstrap intervals. '
+        'In GPT-2, G rises above random before returning to the common all-zero endpoint.')
+    values['comparison_metric_html'], values['definition_winners_html'], values['definition_comparison_html'] = comparison_html(RESULTS, COLORS)
     source = (RESULTS / 'interactive.html').read_text()
     introduction = '<h1>Activation ablation study</h1><p>Explore held-out measurements by model, layer, method and nominal removal fraction.</p>'
     if introduction not in source or '</main><script>' not in source:
         raise ValueError('Explorer template changed')
-    explorer_split = '<h2>How the selected outcome varies across layers</h2>'
+    explorer_split = '<div class="controls" id="depth-controls">'
     if source.count(introduction) != 1 or source.count(explorer_split) != 1:
         raise ValueError('Explorer sections changed')
     before, after = source.split(introduction, 1)
     main_plot, remaining = after.split(explorer_split, 1)
-    values['results_explorer'] = ('<section id="data-explorer" class="explorer"><h2>Results</h2>'
-                                  + main_plot + '</section>')
-    article = typeset_math(substitute((HERE / 'report_content.html').read_text(), values))
-    source = before + article + '<section class="explorer"><h2>More results</h2>' + explorer_split + remaining
-    source = source.replace('</main><script>', '</section></main><script>', 1)
+    values['results_explorer'] = ('<section id="data-explorer" class="explorer"><h2>Experiments &amp; Results</h2>'
+                                  + '<p>I zero selected activations just before the MLP output projection. '
+                                  + 'The single-layer runs use 512 windows from 61 WikiText-2 articles.</p>'
+                                  + '<h3 class="plot-title">Model output changes as more activations are removed</h3>' + main_plot + '</section>')
+    article = typeset_math(render_sidenotes(substitute((HERE / 'article.html').read_text(), values)))
+    source = before + article + '<details class="explorer additional-results"><summary>Additional Results</summary>' + explorer_split + remaining
+    source = source.replace('</main><script>', '</details></main><script>', 1)
     source = source.replace('<title>Activation ablation study</title>', '<title>What is a weak activation? Four definitions compared</title>', 1)
     source = source.replace('</style></head>', math_styles() + values['report_styles'] + '</style></head>', 1)
     source = source.replace('</head>', '<script>' + (MATH_ASSETS / 'katex.min.js').read_text() + '</script></head>', 1)
-    source = source.replace('</body>', '<script>' + (HERE / 'strength_definitions.js').read_text() + '</script></body>', 1)
-    (ROOT / 'blog.html').write_text(source)
+    source = source.replace('</body>', '<script>' + (HERE / 'strength_definitions.js').read_text() + '</script><script>' + (HERE / 'footnotes.js').read_text() + '</script><script>' + (HERE / 'definition_comparison.js').read_text() + '</script></body>', 1)
+    source = source.replace('</body>', '<script>' + (HERE / 'window_distribution.js').read_text() + '</script></body>', 1)
+    (HERE.parent / 'index.html').write_text(source)
     numeric_values = {key: value for key, value in values.items() if not key.endswith(('_html', '_styles', '_figure', '_explorer'))}
     (RESULTS / 'article_values.json').write_text(json.dumps(numeric_values, indent=2) + '\n')
-    print('Wrote blog.html with checked claims and self-contained figures')
+    print('Wrote article/index.html')
 
 
 if __name__ == '__main__':

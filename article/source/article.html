@@ -1,0 +1,140 @@
+<article class="article">
+<nav class="post-nav" aria-label="Article navigation">
+<a href="https://francescobraicovich.github.io/">home</a>
+<!-- GitHub mark from Primer Octicons.
+MIT License
+
+Copyright (c) 2026 GitHub Inc.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<a href="https://github.com/francescobraicovich/measuring-activations"><svg aria-hidden="true" focusable="false" fill="currentColor" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M6.766 11.328c-2.063-.25-3.516-1.734-3.516-3.656 0-.781.281-1.625.75-2.188-.203-.515-.172-1.609.063-2.062.625-.078 1.468.25 1.968.703.594-.187 1.219-.281 1.985-.281.765 0 1.39.094 1.953.265.484-.437 1.344-.765 1.969-.687.218.422.25 1.515.046 2.047.5.593.766 1.39.766 2.203 0 1.922-1.453 3.375-3.547 3.64.531.344.89 1.094.89 1.954v1.625c0 .468.391.734.86.547C13.781 14.359 16 11.53 16 8.03 16 3.61 12.406 0 7.984 0 3.563 0 0 3.61 0 8.031a7.88 7.88 0 0 0 5.172 7.422c.422.156.828-.125.828-.547v-1.25c-.219.094-.5.156-.75.156-1.031 0-1.64-.562-2.078-1.609-.172-.422-.36-.672-.719-.719-.187-.015-.25-.093-.25-.187 0-.188.313-.328.625-.328.453 0 .844.281 1.25.86.313.452.64.655 1.031.655s.641-.14 1-.5c.266-.265.47-.5.657-.656"/></svg> GitHub</a>
+</nav>
+<header class="article-header">
+<h1>What is a weak activation?</h1>
+<p class="eyebrow"><time>October 2026</time></p>
+<p class="subtitle">Comparing four definitions in GPT-2 and SmolLM2.</p>
+</header>
+
+<p>The interpretability community has seen considerable discussion about weak activations following Nick Cammarata’s <a href="https://already-clean.goodfire.com/">“Neural Networks Are Already Clean”</a>. Nick argues that modern training pipelines have improved neuron monosemanticity alongside model performance, and that interpreting neurons’ activations has become tractable even at large scale. One of the points he makes to support large-scale interpretability efforts is that weak activations contribute marginally to a network's output; he corroborates this by showing that vision models tolerate substantial removal of weak activations. It is unclear whether this also holds for LLMs, and most importantly: what is a weak activation?</p>
+
+<p>I don't think it makes sense to talk about weak activations in absolute terms. Whether an activation is weak makes sense only compared to a reference distribution: we might pick the chosen neuron's history, activations of other neurons in the same layer, or its contribution to the MLP output. These comparisons can select quite different values for removal, and with the following experiments I try to navigate these differences. To see how the results might vary with newer training techniques, I run each experiment on GPT-2 and SmolLM2, two similarly sized models trained years apart using different methods.</p>
+
+
+
+<section id="debate">
+<h2>The Discussion</h2>
+<p>As mentioned before, <a href="https://already-clean.goodfire.com/">“Neural Networks Are Already Clean”</a> argues that removing weak activations in vision models mostly affects fine distinctions. Throughout the essay, Nick frequently uses the notion of activation strength, sometimes looking at a neuron’s response relative to its own strongest observed activation. To my knowledge, it is not clear what definition he uses in the vision ablations, as he only describes removing the “weakest 75%”.</p>
+
+<p>In this <a href="https://www.lesswrong.com/posts/x4kvabkF2Jk8GLZp8/linkpost-neural-networks-are-already-clean">LessWrong discussion</a>, Neel Nanda says he expects weak activations to matter for language-model behavior, including memorized facts, and doubts that Nick’s results will hold for LLMs.</p>
+</section>
+
+<section id="definitions">
+<h2>Selection rules</h2>
+<p>I compare four ways of deciding which MLP neuron activations are weak. Suppose we want to remove the weakest 75%: each rule starts from a different idea of what “weak” means.</p>
+
+<div class="definition-list">
+<div><h3>N · Neuron percentile</h3><p>Compare each activation with the same neuron’s past activations. For each neuron, use training text to find the 75th percentile of that neuron’s activation magnitudes; remove test activations below that neuron’s threshold.</p></div>
+<div><h3>L · Layer percentile at token</h3><p>Compare neurons with one another at the same token. At each token, remove the 75% of neurons with the smallest activation magnitudes in that layer.</p></div>
+<div><h3>G · Layer percentile, globally pooled across tokens</h3><p>Compare each activation with all activations in that layer’s training text. Pool their magnitudes to find a single 75th-percentile threshold; remove test activations below that threshold.</p></div>
+<div><h3>W · Layer percentile, weight adjusted</h3><p>Compare how much each neuron contributes to the MLP output. Multiply its activation magnitude by the length of its output weight vector; at each token, remove the 75% with the smallest scores.</p></div>
+</div>
+
+<p class="has-sidenote">All four rules use quantiles to decide which activations to remove. L and W remove a fixed number at each token, while N and G use thresholds fitted on training text, so the number of test activations below those thresholds can vary. <mark>The differences are small in the individual-layer runs</mark><span class="sidenote"><button class="sidenote-trigger" type="button" aria-label="Show note 1" aria-expanded="false" aria-controls="sidenote-1">1</button><span class="sidenote-content" id="sidenote-1" role="note">Ideally, I’d rerun each rule with its cutoff adjusted to remove exactly 75% of the test activations. For N and G, the 75th-percentile cutoff comes from training text, so it can remove a different share on the test text. Unfortunately, this is just a weekend project and I didn’t have time to rerun everything. Interpolating is good enough.</span></span>: at the 75% setting, the average share removed ranges from 73.9% to 75.2% across the four rules and sampled layers.</p>
+
+<figure class="interactive-figure" aria-labelledby="definitions-title">
+<h3 id="definitions-title">Which activations each definition removes at one token</h3>
+<p class="figure-introduction">Change an activation or its output-vector norm in this synthetic eight-neuron layer. The table shows which activations each rule selects; calibration histories stay fixed.</p>
+[[definitions_html]]
+<figcaption>Figure 1. Synthetic example. Each neuron has 12 calibration magnitudes, evenly spaced from 0.1 to 1.9 times its reference scale. N and G use linearly interpolated quantiles and strict \(<\) thresholds; L and W use exact quotas with ties broken by neuron index.</figcaption>
+</figure>
+</section>
+
+[[results_explorer]]
+
+<section id="results">
+<h2>Can we remove most weak activations?</h2>
+<p class="has-sidenote">Even before comparing different definitions of weak activations, I first investigated the effects of removing activations from a single layer while keeping the rest of the model intact. I repeated the experiment across five layers in each model, <mark>as well as sequentially across all layers</mark><span class="sidenote"><button class="sidenote-trigger" type="button" aria-label="Show note 2" aria-expanded="false" aria-controls="sidenote-2">2</button><span class="sidenote-content" id="sidenote-2" role="note">I start by removing the weakest activations in the first layer, then pass what comes out to the second layer and remove its weakest activations too. I keep going like that all the way through the model. This extension uses a smaller sample of 64 windows, and G removes [[all_smol_observed_fraction]]% per layer on average.</span></span>. If most weak activations are unimportant for prediction, removing them should have a substantially smaller impact than removing the same number randomly.</p>
+
+<p>In SmolLM2’s layers, this is precisely what I observed. For instance, in the middle layer (layer 16), at 75% nominal removal, the model’s most likely next token changed at [[smol_g_flip_rate]]% of scored positions when using definition G and [[smol_l_flip_rate]]% when using definition L. Random removal resulted in a [[smol_random_flip_rate]]% change.</p>
+
+<p>Beyond the flip rate, I also measured the KL divergence between the original distribution for the next token and the distribution after removal. In the same layer, definition G also yielded a much lower KL than random removal: [[smol_g_kl]] compared to [[smol_random_kl]]. Across the sampled SmolLM2 layers at this removal setting, all four definitions have a smaller impact on the network’s outputs than random activation removal, both in terms of KL divergence and flip rate.</p>
+
+<p>While these metrics might look promising, they don’t paint the full picture. As Neel Nanda suggests, weak activations might be more relevant for rare events and facts. To explore how the effect varies across passages, I examined the distribution of flip rates when removing activations. With definition G at 75% nominal removal in SmolLM2 layer 16 (the same setup as before), the median window had a [[smol_window_median]]% next-token flip rate, the 90th percentile window had a [[smol_window_p90]]% flip rate, and the highest observed window had a [[smol_window_max]]% flip rate.</p>
+
+<figure class="scientific-figure">
+<div id="window-distribution-controls" hidden>
+<div class="comparison-controls">
+<label>Model <select id="window-model"><option value="gpt2">GPT-2</option><option value="smollm2" selected>SmolLM2</option></select></label>
+<label>Layer <select id="window-layer"></select></label>
+<label>Definition <select id="window-definition"></select></label>
+<label>Metric <select id="window-metric"></select></label>
+<label>Nominal removal <select id="window-removal"></select></label>
+</div>
+</div>
+<div id="window-distribution-chart" aria-label="Distribution of selected outcomes across held-out windows"></div>
+[[window_flip_rate_figure]]
+<script type="application/json" id="window-distribution-data">[[window_distribution_html]]</script>
+<figcaption>Figure 3. Distribution of outcomes across held-out windows. The initial view shows next-token flip rates for definition G across 512 windows at 75% nominal removal in SmolLM2 layer 16. The lines mark the median, 90th percentile, and highest observed value. <span id="window-distribution-sample" aria-live="polite"></span></figcaption>
+</figure>
+
+<p>As mentioned above, I was also curious to see what happens when we remove activations from all layers sequentially. When I apply definition G sequentially to every SmolLM2 layer, the model changes its top prediction at [[all_smol_flip_rate]]% of scored positions.</p>
+</section>
+
+<section id="comparison">
+<h2>Are newer models more tolerant of weak-activation removal?</h2>
+<p>One of the key claims in “Neural Networks Are Already Clean” is that advances in training have led to models having cleaner, more monosemantic representations. If neurons become more organised and monosemantic, we might expect weak activations to play a less meaningful role. To investigate this, I ran the same analysis on GPT-2 and a comparably sized model trained with more recent techniques, SmolLM2.</p>
+
+<p>At 75% nominal removal under definition G, the top-token flip rate is about 4–6% across the five sampled SmolLM2 layers and 11–21% across the five sampled GPT-2 layers. SmolLM2’s KL is also lower in every sampled layer. That supports Nick’s hypothesis, and the curves below show what happens when we compare weak-activation removal with random removal. Across the five sampled SmolLM2 layers and all four definitions, flip rate and KL rose monotonically as the removal fraction increased. Both stayed below random removal at every sampled fraction between 0% and 100%, with comparisons made at the same nominal removal rate.</p>
+
+<figure class="scientific-figure">
+[[comparison_figure]]
+<figcaption>Figure 4. GPT-2’s response is messier: in its middle layer, pooled-magnitude removal becomes more disruptive than random removal before the curves meet again. SmolLM2’s response is smoother in its middle layer. The horizontal axis uses mean observed removal; N and G use fitted thresholds and can remove different fractions from random. Shading shows 95% article-cluster bootstrap intervals across 512 windows from 61 articles. Random removal uses one seed, which the intervals do not vary.</figcaption>
+</figure>
+
+<p>GPT-2 behaves in a much messier way. In layer 6, removing the weakest 90% under definition G changes the model’s predictions more than random removal at the same nominal rate. When I remove the remaining activations too, the flip rate falls from [[gpt_g_90_flip_rate]]% to [[gpt_g_100_flip_rate]]%, and KL falls from [[gpt_g_90_kl]] to [[gpt_g_100_kl]]. GPT-2’s predictions are more sensitive to weak-activation removal than SmolLM2’s in these runs. The drop after removing the strongest activations suggests that some contributions from weak and strong activations may offset each other.</p>
+
+<p class="has-sidenote">Although this is <mark>not sufficient to establish a general trend across model generations</mark><span class="sidenote"><button class="sidenote-trigger" type="button" aria-label="Show note 3" aria-expanded="false" aria-controls="sidenote-3">3</button><span class="sidenote-content" id="sidenote-3" role="note">These are two models with different architectures and training, and their tokenizers produce different spans of text.</span></span>, it is interesting and consistent with Nick’s broader hypothesis that modern models have cleaner behaviour and are more tolerant to removal of weak activations.</p>
+
+</section>
+
+<section id="selection">
+<h2>So, what is the best definition?</h2>
+<p>I was thinking to myself that a good definition of ‘activation strength’ should be one that, when used to remove the weakest activations, harms the model the least. In Figure 5, you can see which definition meets this criterion.</p>
+<figure class="definition-comparison" aria-labelledby="winner-title">
+<h3 id="winner-title">Least disruptive definition by layer and nominal removal</h3>
+[[comparison_metric_html]]
+<div class="comparison-key" aria-label="Winner colors"><span><b class="winner-N">N</b> Neuron percentile</span><span><b class="winner-L">L</b> Within-token</span><span><b class="winner-G">G</b> Pooled percentile</span><span><b class="winner-W">W</b> Weight adjusted</span></div>
+[[definition_winners_html]]
+<figcaption>Figure 5. The letter and color identify the definition with the lowest mean for the selected metric. Columns show nominal removal. Individual layers use 512 windows; the sequential all-layer run uses 64. Hover for the measured outcome and observed removal.</figcaption>
+</figure>
+
+<p>The first thing is that the two models do not agree. On GPT-2, the neuron percentile (N) comes out ahead most often. On SmolLM2, it’s the pooled percentile (G). To better analyse the comparison, I compare their relative effects on the network’s outputs.</p>
+<figure class="definition-comparison" aria-labelledby="pairwise-title">
+<h3 id="pairwise-title">Relative disruption at matched observed removal</h3>
+[[definition_comparison_html]]
+<figcaption>Figure 6. Ratios compare the two definitions at the same mean observed removal, using linear interpolation between measurements. The all-layer row uses the mean removal across layers. Hover for the two estimated outcomes. The colors show the direction and size of the difference and saturate at ⅛× and 8×.</figcaption>
+</figure>
+
+<p>GPT-2’s response is much messier, so its ranking is less consistent, and the effects of different definitions on it are quite close together. G has a clearer advantage over N in SmolLM2 than N has over G in GPT-2.</p>
+
+<p>It would be interesting to run this analysis on much larger models and see how these metrics evolve as training recipes improve. As of now, it looks like the newer model is more tolerant of weak-activation removal on average, especially when you define it well. A future research direction would be to compare how these removals affect performance across different tasks.</p>
+</section>
+
+</article>

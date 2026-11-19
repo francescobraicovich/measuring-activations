@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-ROOT = Path(__file__).resolve().parents[1] / 'results/study'
+ROOT = Path(__file__).resolve().parents[2] / 'results/study'
 fig = make_subplots(rows=1, cols=2, subplot_titles=['GPT-2, layer 6', 'SmolLM2, layer 16'])
 summary = []
 for column, label in enumerate(('gpt2_6', 'smollm2_16'), 1):
